@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MedClean Pro — Pipeline Médical DVC</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0f1117;--surf:#1a1f2e;--surf2:#242938;--b:#2d3347;
+  --blue:#4f8ef7;--blue2:#79b3ff;--green:#22c55e;--green2:#4ade80;
+  --orange:#f59e0b;--orange2:#fbbf24;--purple:#a78bfa;--purple2:#c4b5fd;
+  --teal:#14b8a6;--teal2:#2dd4bf;--red:#ef4444;--red2:#f87171;
+  --txt:#e2e8f0;--txt2:#94a3b8;--txt3:#475569;
+  --font:'Segoe UI',system-ui,sans-serif;--mono:'Cascadia Code','Fira Code',monospace;
+  --r:8px;--r2:14px
+}
+body{font-family:var(--font);background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;height:56px;background:var(--surf);
+  border-bottom:1px solid var(--b);position:sticky;top:0;z-index:200;
+  box-shadow:0 2px 20px #0008
+}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px}
+.logo-icon{
+  width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  display:flex;align-items:center;justify-content:center;font-size:16px
+}
+.logo-badge{
+  background:linear-gradient(135deg,#3b82f6,#8b5cf6);
+  color:#fff;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:20px;letter-spacing:.5px
+}
+.nav-tabs{display:flex;gap:2px}
+.nav-tab{
+  background:none;border:none;cursor:pointer;color:var(--txt2);
+  font-family:var(--font);font-size:13px;font-weight:500;
+  padding:7px 14px;border-radius:var(--r);transition:all .15s
+}
+.nav-tab:hover{background:var(--surf2);color:var(--txt)}
+.nav-tab.on{background:rgba(79,142,247,.15);color:var(--blue2)}
+.nav-right{display:flex;gap:8px;align-items:center}
+.btn{padding:6px 16px;border-radius:var(--r);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s}
+.btn-ghost{background:none;border-color:var(--b);color:var(--txt2)}
+.btn-ghost:hover{background:var(--surf2);color:var(--txt);border-color:var(--blue)}
+.btn-blue{background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;border:none}
+.btn-blue:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-blue:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-green{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none}
+.btn-red{background:rgba(239,68,68,.15);color:var(--red2);border-color:rgba(239,68,68,.3)}
+
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 56px)}
+
+/* ── SIDEBAR ── */
+aside{
+  background:var(--surf);border-right:1px solid var(--b);
+  padding:16px 0;position:sticky;top:56px;
+  height:calc(100vh - 56px);overflow-y:auto
+}
+.sb-sect{padding:0 10px 12px;margin-bottom:8px;border-bottom:1px solid var(--b)}
+.sb-lbl{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--txt3);text-transform:uppercase;padding:0 6px 8px;display:block}
+.sb-item{
+  display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:var(--r);
+  color:var(--txt2);font-size:13px;cursor:pointer;transition:all .15s;
+  border:none;background:none;width:100%;font-family:var(--font);text-align:left
+}
+.sb-item:hover{background:var(--surf2);color:var(--txt)}
+.sb-item.on{background:rgba(79,142,247,.12);color:var(--blue2)}
+.sb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sb-cnt{margin-left:auto;font-size:10px;background:var(--surf2);border-radius:20px;padding:2px 7px;color:var(--txt3)}
+.sys-row{display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);padding:4px 8px}
+.disk-bar{height:4px;background:var(--surf2);border-radius:4px;margin:6px 8px 0}
+.disk-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--green))}
+
+/* ── MAIN ── */
+main{padding:24px;overflow-y:auto}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}
+.pt{font-size:20px;font-weight:800}
+.ps{font-size:12px;color:var(--txt2);margin-top:3px}
+.pa{display:flex;gap:8px}
+
+/* ── PIPELINE BANNER ── */
+.pipeline-banner{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  border:1px solid var(--b);border-radius:var(--r2);
+  overflow:hidden;margin-bottom:20px
+}
+.pb-step{background:var(--surf);border-right:1px solid var(--b);display:flex;flex-direction:column}
+.pb-step:last-child{border-right:none}
+.pb-head{padding:10px 12px 8px}
+.pb-num{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px}
+.pb-name{font-size:11px;font-weight:600;line-height:1.3}
+.pb-body{padding:8px 12px;flex:1}
+.chip{
+  display:inline-block;font-size:10px;font-weight:500;
+  padding:2px 8px;border-radius:20px;margin:2px 0;cursor:default
+}
+
+/* ── URL CARD ── */
+.url-card{
+  background:var(--surf);border:1px solid var(--b);
+  border-radius:var(--r2);padding:22px;margin-bottom:16px
+}
+.url-lbl{font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.url-row{display:flex;gap:10px}
+.url-in{
+  flex:1;padding:11px 14px;background:var(--bg);border:1.5px solid var(--b);
+  border-radius:var(--r);color:var(--txt);font-family:var(--mono);font-size:12px;outline:none;transition:all .2s
+}
+.url-in:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,142,247,.15)}
+.url-in::placeholder{color:var(--txt3)}
+.run-btn{
+  padding:11px 24px;background:linear-gradient(135deg,#3b82f6,#6366f1);
+  color:#fff;border:none;border-radius:var(--r);font-family:var(--font);
+  font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:8px;white-space:nowrap
+}
+.run-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(79,142,247,.4)}
+.run-btn:active{transform:none}
+.run-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.examples{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.ex-chip{
+  font-size:11px;padding:3px 11px;background:var(--surf2);
+  border:1px solid var(--b);border-radius:20px;color:var(--txt2);
+  cursor:pointer;transition:all .15s
+}
+.ex-chip:hover{border-color:var(--blue);color:var(--blue2)}
+
+/* ── PROGRESS ── */
+.prog-card{
+  background:var(--surf);border:1px solid var(--b);
+  border-radius:var(--r2);padding:20px 24px;margin-bottom:16px;display:none
+}
+.prog-card.show{display:block}
+.prog-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.prog-title{font-size:13px;font-weight:700}
+.pill{font-size:11px;padding:3px 11px;border-radius:20px;font-weight:600}
+.pill-run{background:rgba(79,142,247,.15);color:var(--blue2)}
+.pill-ok{background:rgba(34,197,94,.15);color:var(--green2)}
+.pill-err{background:rgba(239,68,68,.15);color:var(--red2)}
+.steps-row{display:flex;gap:0;margin-bottom:14px}
+.pstep{flex:1;padding:9px 6px;text-align:center;font-size:10px;font-weight:600;border-top:3px solid var(--b);transition:all .3s}
+.pstep .pi{font-size:16px;display:block;margin-bottom:3px}
+.pstep .pn{color:var(--txt2)}
+.pstep.done{border-top-color:var(--green)}.pstep.done .pn{color:var(--green2)}
+.pstep.act{border-top-color:var(--blue)}.pstep.act .pn{color:var(--blue2)}
+.pbar-wrap{background:var(--surf2);border-radius:4px;height:5px;overflow:hidden}
+.pbar{height:100%;border-radius:4px;background:linear-gradient(90deg,#3b82f6,#8b5cf6,#22c55e);transition:width .5s ease}
+.plog{
+  margin-top:14px;background:var(--bg);border:1px solid var(--b);
+  border-radius:var(--r);padding:12px 14px;font-family:var(--mono);
+  font-size:11px;color:var(--txt2);max-height:120px;overflow-y:auto;line-height:1.9
+}
+.l0{color:var(--blue2)}.l1{color:var(--green2)}.l2{color:var(--orange2)}.l3{color:var(--red2)}
+
+/* ── STATS ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.sc{background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);padding:16px 18px}
+.sl{font-size:10px;color:var(--txt2);font-weight:600;letter-spacing:.4px;margin-bottom:6px}
+.sv{font-size:28px;font-weight:900;font-family:var(--mono);line-height:1}
+.sd{font-size:11px;color:var(--txt2);margin-top:4px}
+.sup{color:var(--green2)}.sdown{color:var(--red2)}
+.strend{display:flex;align-items:flex-end;gap:2px;margin-top:9px;height:24px}
+.stb{border-radius:2px;width:7px;opacity:.7}
+
+/* ── CHARTS ── */
+.charts{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}
+.chart-w{grid-column:span 2}
+.cc{background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);padding:18px}
+.ct{font-size:13px;font-weight:700;margin-bottom:3px}
+.cs{font-size:11px;color:var(--txt2);margin-bottom:14px}
+.cw{position:relative;height:200px}
+
+/* ── TABLE ── */
+.tcard{background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);overflow:hidden;margin-bottom:16px}
+.ttbar{padding:13px 18px;border-bottom:1px solid var(--b);display:flex;gap:10px;align-items:center}
+.ttn{font-size:13px;font-weight:700;flex:1}
+.tsearch{
+  padding:6px 12px;background:var(--bg);border:1px solid var(--b);
+  border-radius:var(--r);color:var(--txt);font-family:var(--font);
+  font-size:12px;outline:none;width:180px
+}
+.tsearch:focus{border-color:var(--blue)}
+.tsearch::placeholder{color:var(--txt3)}
+table{width:100%;border-collapse:collapse}
+thead th{
+  padding:10px 14px;text-align:left;font-size:10px;font-weight:700;
+  letter-spacing:.5px;color:var(--txt2);text-transform:uppercase;
+  background:var(--surf2);border-bottom:1px solid var(--b);cursor:pointer
+}
+thead th:hover{color:var(--txt)}
+tbody tr{border-bottom:1px solid var(--b);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--surf2)}
+tbody td{padding:10px 14px;font-size:12px}
+.mono{font-family:var(--mono);font-size:11px}
+.code{background:var(--surf2);border-radius:4px;padding:2px 6px;font-family:var(--mono);font-size:10px}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600}
+.tg{background:rgba(34,197,94,.15);color:var(--green2)}
+.tb{background:rgba(79,142,247,.15);color:var(--blue2)}
+.to{background:rgba(245,158,11,.15);color:var(--orange2)}
+.tr{background:rgba(239,68,68,.15);color:var(--red2)}
+.tp{background:rgba(167,139,250,.15);color:var(--purple2)}
+
+/* ── CHECKS ── */
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.chk{background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);padding:15px}
+.chk-h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.chk-ico{font-size:17px}.chk-n{font-size:12px;font-weight:700}
+.chk-b{margin-left:auto;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.bp{background:rgba(34,197,94,.15);color:var(--green2)}
+.bw{background:rgba(245,158,11,.15);color:var(--orange2)}
+.bf{background:rgba(239,68,68,.15);color:var(--red2)}
+.cm{display:flex;justify-content:space-between;font-size:11px;color:var(--txt2);margin-bottom:5px}
+.cv{font-family:var(--mono);font-weight:700}
+.mbar{height:3px;background:var(--surf2);border-radius:3px;overflow:hidden;margin-bottom:6px}
+.mf{height:100%;border-radius:3px;transition:width .6s}
+
+/* ── TRANSFORM ── */
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.tc2{background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);padding:14px}
+.tctitle{font-size:12px;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.trow{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--txt2);padding:5px 0;border-bottom:1px solid var(--b)}
+.trow:last-child{border-bottom:none}
+.tval{font-family:var(--mono);font-weight:700;color:var(--txt)}
+.arr{color:var(--green2);font-weight:800}
+
+/* ── ANON ── */
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.ac{background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);padding:15px}
+.afield{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--b)}
+.afield:last-child{border-bottom:none}
+.aold{color:var(--red2);text-decoration:line-through;font-family:var(--mono)}
+.anew{color:var(--green2);font-family:var(--mono)}
+
+/* ── VERSIONS ── */
+.vlist{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.vi{
+  background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);
+  padding:14px 18px;display:flex;align-items:center;gap:16px;
+  cursor:pointer;transition:all .15s
+}
+.vi:hover{border-color:var(--blue);background:var(--surf2)}
+.vi.curr{border-color:var(--green)}
+.vh{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--blue2);min-width:82px}
+.vi-info{flex:1}.vi-tag{font-size:13px;font-weight:700;margin-bottom:2px}
+.vi-meta{font-size:11px;color:var(--txt2)}
+.vi-act{display:flex;gap:6px}
+
+/* ── EXPORT CARDS ── */
+.egrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.ec{
+  background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);
+  padding:20px;display:flex;flex-direction:column;align-items:center;
+  gap:9px;cursor:pointer;transition:all .2s;text-align:center
+}
+.ec:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 6px 24px rgba(79,142,247,.2)}
+.ec-ico{font-size:32px}.ec-n{font-size:13px;font-weight:700}
+.ec-d{font-size:11px;color:var(--txt2);line-height:1.4}
+.ec-badge{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:600;margin-top:2px}
+
+/* ── SETTINGS ── */
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.scrd{background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);padding:18px}
+.st{font-size:13px;font-weight:700;margin-bottom:14px}
+.srow{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--txt2);padding:7px 0;border-bottom:1px solid var(--b)}
+.srow:last-child{border-bottom:none}
+.toggle{width:36px;height:20px;background:var(--surf2);border-radius:10px;cursor:pointer;border:none;position:relative;transition:background .2s}
+.toggle.on{background:var(--green)}
+.toggle::after{content:'';width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s}
+.toggle.on::after{left:18px}
+.srange{display:flex;align-items:center;gap:9px}
+.srange input{flex:1;accent-color:var(--blue)}
+.srv{font-size:12px;font-family:var(--mono);color:var(--blue2);min-width:36px}
+.sinput{
+  width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--b);
+  border-radius:var(--r);color:var(--txt);font-family:var(--mono);font-size:12px;outline:none
+}
+.sinput:focus{border-color:var(--blue)}
+.ssel{width:100%;padding:8px 12px;background:var(--bg);border:1px solid var(--b);border-radius:var(--r);color:var(--txt);font-family:var(--font);font-size:12px;outline:none;cursor:pointer}
+.slabel{font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:5px;display:block}
+.sfield{margin-bottom:12px}
+
+/* ── ALERTS ── */
+.alert{padding:12px 16px;border-radius:var(--r);font-size:12px;display:flex;gap:9px;align-items:flex-start;margin-bottom:14px}
+.ai{background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.3)}
+.aw{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)}
+.ag{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+.aico{font-size:15px;flex-shrink:0}
+
+/* ── GATE BADGE ── */
+.gate{
+  background:var(--surf);border:2px solid var(--green);border-radius:var(--r2);
+  padding:14px 20px;margin-bottom:14px;display:flex;align-items:center;gap:16px
+}
+.gate-ico{font-size:30px}.gate-txt{flex:1}
+.gate-title{font-size:13px;font-weight:800;color:var(--green2);margin-bottom:2px}
+.gate-sub{font-size:11px;color:var(--txt2)}
+.gate-score{text-align:right}
+.gate-val{font-size:28px;font-weight:900;font-family:var(--mono);color:var(--green2)}
+.gate-lbl{font-size:10px;color:var(--txt2)}
+
+/* ── CODE BLOCK ── */
+.codeblock{
+  background:#1e1e2e;border:1px solid #3d3d5c;border-radius:var(--r);
+  padding:14px 16px;font-family:var(--mono);font-size:11px;
+  color:#cdd6f4;margin-bottom:14px;overflow-x:auto;line-height:1.8
+}
+.ck{color:#cba6f7}.cv2{color:#89dceb}.cs{color:#a6e3a1}.cn{color:#fab387}.cc2{color:#6c7086}
+
+/* ── COMPARE ── */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.ccard{background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);padding:16px}
+.cch{display:flex;align-items:center;gap:9px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--b)}
+.cmet{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--b)}
+.cmet:last-child{border-bottom:none}
+.cmet .lb{color:var(--txt2)}.cmet .v1{font-family:var(--mono);color:var(--orange2)}.cmet .v2{font-family:var(--mono);color:var(--green2)}
+
+/* ── TABS ── */
+.tabs{display:flex;border-bottom:1px solid var(--b);margin-bottom:18px}
+.tab{padding:9px 18px;font-size:13px;font-weight:600;color:var(--txt2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font)}
+.tab:hover{color:var(--txt)}.tab.on{color:var(--blue2);border-bottom-color:var(--blue)}
+
+/* ── DVC TERMINAL ── */
+.dvc-terminal{background:#0d1117;border:1px solid #30363d;border-radius:var(--r);padding:16px;font-family:var(--mono);font-size:12px;line-height:2;margin-bottom:14px}
+.t-prompt{color:#58a6ff}.t-cmd{color:#e6edf3}.t-out{color:#7ee787}.t-grey{color:#8b949e}
+
+/* ── SPINNER ── */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes fadein{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.fadein{animation:fadein .25s ease}
+::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--b);border-radius:3px}
+@media(max-width:900px){.app{grid-template-columns:1fr}aside{display:none}.pipeline-banner{grid-template-columns:repeat(3,1fr)}.stats,.charts,.checks,.tgrid,.agrid,.egrid,.sgrid,.cgrid{grid-template-columns:1fr}.chart-w{grid-column:span 1}}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🧬</div>
+    MedClean Pro
+    <span class="logo-badge">DVC v1.0</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab on" id="nt-pipeline" onclick="gv('pipeline')">Pipeline</button>
+    <button class="nav-tab" id="nt-dashboard" onclick="gv('dashboard')">Tableau de bord</button>
+    <button class="nav-tab" id="nt-transform" onclick="gv('transform')">Transformation</button>
+    <button class="nav-tab" id="nt-anon" onclick="gv('anon')">Anonymisation</button>
+    <button class="nav-tab" id="nt-export" onclick="gv('export')">Export DVC</button>
+    <button class="nav-tab" id="nt-history" onclick="gv('history')">Historique</button>
+    <button class="nav-tab" id="nt-settings" onclick="gv('settings')">Paramètres</button>
+  </div>
+  <div class="nav-right">
+    <span id="nav-st" style="font-size:11px;color:var(--txt2)">Prêt</span>
+    <button class="btn btn-ghost">Docs</button>
+    <button class="btn btn-blue" onclick="gv('pipeline')">+ Nouveau job</button>
+  </div>
+</nav>
+
+<!-- ── APP ── -->
+<div class="app">
+
+<!-- ── SIDEBAR ── -->
+<aside>
+  <div class="sb-sect">
+    <span class="sb-lbl">Navigation</span>
+    <button class="sb-item on" id="sb-pipeline" onclick="gv('pipeline')"><span class="sb-dot" style="background:var(--blue)"></span>Vue Pipeline</button>
+    <button class="sb-item" id="sb-dashboard" onclick="gv('dashboard')"><span class="sb-dot" style="background:var(--green)"></span>Tableau de bord<span class="sb-cnt" id="rc">0</span></button>
+    <button class="sb-item" id="sb-dqv" onclick="gv('dqv')"><span class="sb-dot" style="background:var(--orange)"></span>Contrôle Qualité</button>
+    <button class="sb-item" id="sb-transform" onclick="gv('transform')"><span class="sb-dot" style="background:var(--teal)"></span>Transformation</button>
+    <button class="sb-item" id="sb-anon" onclick="gv('anon')"><span class="sb-dot" style="background:var(--purple)"></span>Anonymisation</button>
+    <button class="sb-item" id="sb-export" onclick="gv('export')"><span class="sb-dot" style="background:var(--red)"></span>Export / DVC</button>
+    <button class="sb-item" id="sb-history" onclick="gv('history')"><span class="sb-dot" style="background:#64748b"></span>Historique</button>
+  </div>
+  <div class="sb-sect">
+    <span class="sb-lbl">Jobs récents</span>
+    <button class="sb-item" onclick="lex('mimic')">💾 MIMIC-III Demo</button>
+    <button class="sb-item" onclick="lex('who')">🌍 WHO GHO Data</button>
+    <button class="sb-item" onclick="lex('pubmed')">📄 PubMed / NLM</button>
+    <button class="sb-item" onclick="lex('ct')">💊 ClinicalTrials</button>
+  </div>
+  <div class="sb-sect">
+    <span class="sb-lbl">Statut Système</span>
+    <div class="sys-row"><span>DVC Remote</span><span style="color:var(--green2)">● En ligne</span></div>
+    <div class="sys-row"><span>Scraper</span><span style="color:var(--green2)">● Actif</span></div>
+    <div class="sys-row"><span>S3 Storage</span><span style="color:var(--green2)">● Connecté</span></div>
+    <div class="sys-row"><span>Great Expectations</span><span style="color:var(--orange2)">● v0.18</span></div>
+  </div>
+  <div style="padding:10px 14px">
+    <div style="font-size:10px;color:var(--txt3);margin-bottom:6px;letter-spacing:.5px">ESPACE UTILISÉ</div>
+    <div class="disk-bar"><div class="disk-fill" style="width:34%"></div></div>
+    <div style="font-size:10px;color:var(--txt2);margin-top:4px;padding:0 8px">1.7 GB / 5 GB</div>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main id="main">
+
+<!-- ════════════════════════════════
+     VUE : PIPELINE
+════════════════════════════════ -->
+<div id="v-pipeline" class="fadein">
+  <div class="ph">
+    <div><div class="pt">Pipeline de Nettoyage Médical</div>
+    <div class="ps">URL → Scraping → DVC → Nettoyage → DQV → Export · Données médicales versionées</div></div>
+    <div class="pa"><button class="btn btn-ghost" onclick="gv('history')">Historique</button></div>
+  </div>
+
+  <!-- PIPELINE BANNER (fidèle au schéma) -->
+  <div class="pipeline-banner">
+    <!-- 1 UI -->
+    <div class="pb-step">
+      <div class="pb-head" style="border-top:3px solid #4f8ef7">
+        <div class="pb-num" style="color:#4f8ef7">01</div>
+        <div class="pb-name">Interface Utilisateur</div>
+      </div>
+      <div class="pb-body">
+        <span class="chip" style="background:rgba(79,142,247,.15);color:#79b3ff">🖥️ Streamlit App</span><br>
+        <span class="chip" style="background:rgba(79,142,247,.1);color:#79b3ff">🔗 Saisie URL</span><br>
+        <span class="chip" style="background:rgba(79,142,247,.1);color:#79b3ff">✅ Validation</span>
+      </div>
+    </div>
+    <!-- 2 SCRAPING -->
+    <div class="pb-step">
+      <div class="pb-head" style="border-top:3px solid #22c55e">
+        <div class="pb-num" style="color:#22c55e">02</div>
+        <div class="pb-name">Collecte & Scraping</div>
+      </div>
+      <div class="pb-body">
+        <span class="chip" style="background:rgba(34,197,94,.15);color:#4ade80">🕷️ BeautifulSoup</span><br>
+        <span class="chip" style="background:rgba(34,197,94,.1);color:#4ade80">🤖 Selenium</span><br>
+        <span class="chip" style="background:rgba(34,197,94,.1);color:#4ade80">💾 Raw Storage</span>
+      </div>
+    </div>
+    <!-- 3 DVC -->
+    <div class="pb-step">
+      <div class="pb-head" style="border-top:3px solid #a78bfa">
+        <div class="pb-num" style="color:#a78bfa">03</div>
+        <div class="pb-name">Versioning DVC</div>
+      </div>
+      <div class="pb-body">
+        <span class="chip" style="background:rgba(167,139,250,.15);color:#c4b5fd">📦 DVC Init</span><br>
+        <span class="chip" style="background:rgba(167,139,250,.1);color:#c4b5fd">➕ DVC Add</span><br>
+        <span class="chip" style="background:rgba(167,139,250,.1);color:#c4b5fd">☁️ Push S3/GCS</span>
+      </div>
+    </div>
+    <!-- 4 CLEANING -->
+    <div class="pb-step">
+      <div class="pb-head" style="border-top:3px solid #f59e0b">
+        <div class="pb-num" style="color:#f59e0b">04</div>
+        <div class="pb-name">Nettoyage & Anonymisation</div>
+      </div>
+      <div class="pb-body">
+        <span class="chip" style="background:rgba(245,158,11,.15);color:#fbbf24">🔒 PHI / k-anon</span><br>
+        <span class="chip" style="background:rgba(245,158,11,.1);color:#fbbf24">🏥 ICD-10</span><br>
+        <span class="chip" style="background:rgba(245,158,11,.1);color:#fbbf24">📐 Normalisation</span>
+      </div>
+    </div>
+    <!-- 5 DQV -->
+    <div class="pb-step">
+      <div class="pb-head" style="border-top:3px solid #14b8a6">
+        <div class="pb-num" style="color:#14b8a6">05</div>
+        <div class="pb-name">Vérification Qualité</div>
+      </div>
+      <div class="pb-body">
+        <span class="chip" style="background:rgba(20,184,166,.15);color:#2dd4bf">🔍 DQV Auto</span><br>
+        <span class="chip" style="background:rgba(20,184,166,.1);color:#2dd4bf">📊 6 Contrôles</span><br>
+        <span class="chip" style="background:rgba(20,184,166,.1);color:#2dd4bf">🚦 Gate</span>
+      </div>
+    </div>
+    <!-- 6 TRANSFORM -->
+    <div class="pb-step">
+      <div class="pb-head" style="border-top:3px solid #8b5cf6">
+        <div class="pb-num" style="color:#8b5cf6">06</div>
+        <div class="pb-name">Transformation ML</div>
+      </div>
+      <div class="pb-body">
+        <span class="chip" style="background:rgba(139,92,246,.15);color:#c4b5fd">🔢 Encodage</span><br>
+        <span class="chip" style="background:rgba(139,92,246,.1);color:#c4b5fd">📏 Scaling</span><br>
+        <span class="chip" style="background:rgba(139,92,246,.1);color:#c4b5fd">✨ Feature Eng.</span>
+      </div>
+    </div>
+    <!-- 7 OUTPUT -->
+    <div class="pb-step" style="border-right:none">
+      <div class="pb-head" style="border-top:3px solid #ef4444">
+        <div class="pb-num" style="color:#ef4444">07</div>
+        <div class="pb-name">Output & Export</div>
+      </div>
+      <div class="pb-body">
+        <span class="chip" style="background:rgba(239,68,68,.15);color:#f87171">📄 CSV DVC-Tracked</span><br>
+        <span class="chip" style="background:rgba(239,68,68,.1);color:#f87171">🤖 Prêt ML</span><br>
+        <span class="chip" style="background:rgba(239,68,68,.1);color:#f87171">⬇️ Télécharger</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- URL INPUT -->
+  <div class="url-card">
+    <div class="url-lbl">🔗 URL de la source de données médicales</div>
+    <div class="url-row">
+      <input class="url-in" id="url-in" type="url" placeholder="https://physionet.org/content/mimiciii-demo/1.4/ — lien base médicale publique…"/>
+      <button class="run-btn" id="run-btn" onclick="runPipeline()">
+        <span id="run-ico">▶</span><span id="run-lbl">Lancer le Pipeline</span>
+      </button>
+    </div>
+    <div class="examples">
+      <span style="font-size:10px;color:var(--txt3)">Exemples :</span>
+      <span class="ex-chip" onclick="su('https://physionet.org/content/mimiciii-demo/1.4/')">MIMIC-III</span>
+      <span class="ex-chip" onclick="su('https://www.ncbi.nlm.nih.gov/research/pubtator3-api/')">PubMed NLM</span>
+      <span class="ex-chip" onclick="su('https://apps.who.int/gho/data/node.resources')">WHO GHO</span>
+      <span class="ex-chip" onclick="su('https://clinicaltrials.gov/api/query/full_studies?expr=diabetes')">ClinicalTrials.gov</span>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="prog-card" id="prog-card">
+    <div class="prog-hdr">
+      <div class="prog-title" id="prog-title">Pipeline en cours d'exécution…</div>
+      <span class="pill pill-run" id="prog-pill">En cours</span>
+    </div>
+    <div class="steps-row">
+      <div class="pstep" id="ps0"><span class="pi">🖥️</span><span class="pn">Interface</span></div>
+      <div class="pstep" id="ps1"><span class="pi">🕷️</span><span class="pn">Collecte</span></div>
+      <div class="pstep" id="ps2"><span class="pi">📦</span><span class="pn">DVC Add</span></div>
+      <div class="pstep" id="ps3"><span class="pi">🔒</span><span class="pn">Nettoyage</span></div>
+      <div class="pstep" id="ps4"><span class="pi">🔍</span><span class="pn">DQV</span></div>
+      <div class="pstep" id="ps5"><span class="pi">⚙️</span><span class="pn">Transform</span></div>
+      <div class="pstep" id="ps6"><span class="pi">📄</span><span class="pn">Export</span></div>
+    </div>
+    <div class="pbar-wrap"><div class="pbar" id="pbar" style="width:0%"></div></div>
+    <div class="plog" id="plog"></div>
+  </div>
+
+  <!-- RETRY NOTICE (fidèle schéma) -->
+  <div class="alert ai"><span class="aico">🔄</span><span>L'utilisateur peut relancer le pipeline avec une nouvelle URL ou consulter les versions précédentes via l'onglet <b>Historique DVC</b>. Supporte : PhysioNet, PubMed, WHO GHO, ClinicalTrials.gov, MIMIC. Formats : CSV, JSON, XML, FHIR HL7.</span></div>
+</div>
+
+<!-- ════════════════════════════════
+     VUE : DASHBOARD
+════════════════════════════════ -->
+<div id="v-dashboard" style="display:none" class="fadein">
+  <div class="ph">
+    <div><div class="pt">Tableau de bord analytique</div>
+    <div class="ps" id="dash-sub">Lancez le pipeline pour visualiser les analyses</div></div>
+    <div class="pa">
+      <button class="btn btn-ghost" onclick="gv('dqv')">DQV →</button>
+      <button class="btn btn-blue" id="dl-btn" onclick="dlCSV()" disabled>⬇ CSV</button>
+    </div>
+  </div>
+  <div id="d-empty" class="alert aw"><span class="aico">⚠️</span><span>Lancez le pipeline depuis l'onglet <b>Pipeline</b> pour voir les analyses ici.</span></div>
+  <div id="d-content" style="display:none">
+    <div class="stats">
+      <div class="sc"><div class="sl">LIGNES TRAITÉES</div><div class="sv" id="s1" style="color:var(--blue2)">—</div><div class="sd" id="s1d">—</div><div class="strend" id="tr1"></div></div>
+      <div class="sc"><div class="sl">VALEURS MANQUANTES</div><div class="sv" id="s2" style="color:var(--green2)">—</div><div class="sd" id="s2d">—</div><div class="strend" id="tr2"></div></div>
+      <div class="sc"><div class="sl">DOUBLONS SUPPRIMÉS</div><div class="sv" id="s3" style="color:var(--orange2)">—</div><div class="sd" id="s3d">—</div><div class="strend" id="tr3"></div></div>
+      <div class="sc"><div class="sl">SCORE QUALITÉ</div><div class="sv" id="s4" style="color:var(--green2)">—</div><div class="sd" id="s4d">—</div><div class="strend" id="tr4"></div></div>
+    </div>
+    <div class="charts">
+      <div class="cc"><div class="ct">Distribution ICD-10</div><div class="cs">Top 8 diagnostics</div><div class="cw"><canvas id="ch-icd"></canvas></div></div>
+      <div class="cc"><div class="ct">Répartition par Âge</div><div class="cs">Tranches après nettoyage</div><div class="cw"><canvas id="ch-age"></canvas></div></div>
+    </div>
+    <div class="charts">
+      <div class="cc chart-w"><div class="ct">Glycémie Moyenne par Diagnostic — Avant / Après Normalisation</div><div class="cs">Comparaison mg/dL (original) vs mmol/L (normalisé)</div><div class="cw" style="height:210px"><canvas id="ch-gluc"></canvas></div></div>
+    </div>
+    <div class="charts">
+      <div class="cc"><div class="ct">Résultats Cliniques</div><div class="cs">Distribution des outcomes patients</div><div class="cw"><canvas id="ch-out"></canvas></div></div>
+      <div class="cc"><div class="ct">Score Qualité par Étape</div><div class="cs">Évolution cumulative du score DQV</div><div class="cw"><canvas id="ch-qual"></canvas></div></div>
+    </div>
+    <div class="tcard">
+      <div class="ttbar">
+        <span class="ttn">Aperçu du Dataset Nettoyé</span>
+        <input class="tsearch" placeholder="🔍 Filtrer…" id="tsearch" oninput="filterT()">
+        <span id="tcnt" style="font-size:11px;color:var(--txt2)"></span>
+        <button class="btn btn-ghost" onclick="sortT()">⇅ Âge</button>
+      </div>
+      <div style="overflow-x:auto"><table id="dtable"><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     VUE : DQV
+════════════════════════════════ -->
+<div id="v-dqv" style="display:none" class="fadein">
+  <div class="ph">
+    <div><div class="pt">Contrôle Qualité des Données (DQV)</div>
+    <div class="ps">6 vérifications automatisées — Great Expectations + Pandera</div></div>
+    <button class="btn btn-ghost" onclick="rdqv()">🔄 Relancer</button>
+  </div>
+  <div id="dqv-empty" class="alert aw"><span class="aico">⚠️</span><span>Lancez le pipeline d'abord.</span></div>
+  <div id="dqv-content" style="display:none">
+    <div class="gate"><span class="gate-ico">🚦</span><div class="gate-txt"><div class="gate-title">GATE : APPROUVÉ</div><div class="gate-sub">Dataset validé pour la modélisation ML · 4/6 checks OK · 2 avertissements</div></div><div class="gate-score"><div class="gate-val">94%</div><div class="gate-lbl">Score Global</div></div></div>
+    <div class="alert ag"><span class="aico">✅</span><span id="dqv-sum">4/6 checks OK — Dataset approuvé. 2 avertissements (doublons, distribution).</span></div>
+    <div class="checks" id="checks-cont"></div>
+    <div class="charts">
+      <div class="cc"><div class="ct">Radar DQV</div><div class="cs">6 dimensions de qualité</div><div class="cw"><canvas id="ch-radar"></canvas></div></div>
+      <div class="cc"><div class="ct">Complétude par Colonne</div><div class="cs">Taux de remplissage (seuil 85%)</div><div class="cw"><canvas id="ch-miss"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     VUE : TRANSFORM
+════════════════════════════════ -->
+<div id="v-transform" style="display:none" class="fadein">
+  <div class="ph">
+    <div><div class="pt">Transformation des Données</div>
+    <div class="ps">Encodage, scaling, normalisation et feature engineering pour ML</div></div>
+    <button class="btn btn-green" onclick="applyT()">✔ Appliquer tout</button>
+  </div>
+  <div id="tr-empty" class="alert aw"><span class="aico">⚠️</span><span>Lancez le pipeline d'abord.</span></div>
+  <div id="tr-content" style="display:none">
+    <div class="tabs">
+      <button class="tab on" onclick="stab(this,'tab-enc')">Encodage Catégoriel</button>
+      <button class="tab" onclick="stab(this,'tab-scale')">Scaling / Normalisation</button>
+      <button class="tab" onclick="stab(this,'tab-fmt')">Formatage</button>
+      <button class="tab" onclick="stab(this,'tab-units')">Conversion Unités</button>
+    </div>
+    <div id="tab-enc">
+      <div class="alert ai"><span class="aico">ℹ️</span><span>Label Encoding (cardinalité &lt;10) et One-Hot Encoding (≥10 modalités) appliqués automatiquement.</span></div>
+      <div class="tgrid">
+        <div class="tc2"><div class="tctitle">🏷️ gender — Label Encoding</div><div class="trow"><span>M</span><span class="arr">→</span><span class="tval">1</span></div><div class="trow"><span>F</span><span class="arr">→</span><span class="tval">0</span></div><div class="trow"><span>Autre</span><span class="arr">→</span><span class="tval">2</span></div><div class="trow"><span>Cardinalité</span><span class="tval" style="color:var(--blue2)">3</span></div></div>
+        <div class="tc2"><div class="tctitle">🎯 outcome — Label Encoding</div><div class="trow"><span>Amélioré</span><span class="arr">→</span><span class="tval">0</span></div><div class="trow"><span>Chronique</span><span class="arr">→</span><span class="tval">1</span></div><div class="trow"><span>Hospitalisé</span><span class="arr">→</span><span class="tval">2</span></div><div class="trow"><span>Rémission</span><span class="arr">→</span><span class="tval">3</span></div><div class="trow"><span>Stable</span><span class="arr">→</span><span class="tval">4</span></div></div>
+        <div class="tc2"><div class="tctitle">🏥 icd_code — One-Hot Encoding</div><div class="trow"><span>icd_E11.9</span><span class="arr">→</span><span class="tval">0/1</span></div><div class="trow"><span>icd_I10</span><span class="arr">→</span><span class="tval">0/1</span></div><div class="trow"><span>icd_J45.20</span><span class="arr">→</span><span class="tval">0/1</span></div><div class="trow"><span>… (5 autres)</span><span class="arr">→</span><span class="tval">0/1</span></div><div class="trow"><span>Nouvelles colonnes</span><span class="tval" style="color:var(--blue2)">+8 cols</span></div></div>
+      </div>
+    </div>
+    <div id="tab-scale" style="display:none">
+      <div class="alert ai"><span class="aico">ℹ️</span><span>StandardScaler (μ=0,σ=1) sur features continues. MinMaxScaler [0,1] sur scores.</span></div>
+      <div class="tgrid">
+        <div class="tc2"><div class="tctitle">📐 StandardScaler — Glycémie</div><div class="trow"><span>μ original</span><span class="tval">7.42 mmol/L</span></div><div class="trow"><span>σ original</span><span class="tval">2.18</span></div><div class="trow"><span>Étendue après</span><span class="tval">[-2.8, +3.1]</span></div></div>
+        <div class="tc2"><div class="tctitle">📐 StandardScaler — TA Systolique</div><div class="trow"><span>μ original</span><span class="tval">128.4 mmHg</span></div><div class="trow"><span>σ original</span><span class="tval">18.7</span></div><div class="trow"><span>Étendue après</span><span class="tval">[-2.1, +2.6]</span></div></div>
+        <div class="tc2"><div class="tctitle">🔢 MinMaxScaler [0,1] — Âge</div><div class="trow"><span>Min</span><span class="tval">18 ans</span></div><div class="trow"><span>Max</span><span class="tval">89 ans</span></div><div class="trow"><span>45 ans →</span><span class="tval">0.382</span></div></div>
+      </div>
+      <div class="charts">
+        <div class="cc"><div class="ct">Distribution Avant/Après Scaling</div><div class="cs">Glycémie originale vs standardisée</div><div class="cw"><canvas id="ch-scale"></canvas></div></div>
+        <div class="cc"><div class="ct">Corrélations de Pearson</div><div class="cs">Matrice après transformation</div><div class="cw"><canvas id="ch-corr"></canvas></div></div>
+      </div>
+    </div>
+    <div id="tab-fmt" style="display:none">
+      <div class="tgrid">
+        <div class="tc2"><div class="tctitle">📅 Dates → Features Temporelles</div><div class="trow"><span>diagnosis_year</span><span class="tval">2020…</span></div><div class="trow"><span>diagnosis_month</span><span class="tval">1–12</span></div><div class="trow"><span>diagnosis_quarter</span><span class="tval">Q1–Q4</span></div><div class="trow"><span>days_since_epoch</span><span class="tval">int64</span></div><div class="trow"><span>Nouvelles cols</span><span class="tval" style="color:var(--blue2)">+4</span></div></div>
+        <div class="tc2"><div class="tctitle">🔢 Cast des Types</div><div class="trow"><span>age</span><span class="tval">int64→float32</span></div><div class="trow"><span>blood_glucose</span><span class="tval">object→float32</span></div><div class="trow"><span>bp_systolic</span><span class="tval">int64→float32</span></div><div class="trow"><span>Mémoire économisée</span><span class="tval" style="color:var(--green2)">-42%</span></div></div>
+        <div class="tc2"><div class="tctitle">🧹 Valeurs Incohérentes</div><div class="trow"><span>Âge négatif</span><span class="tval" style="color:var(--green2)">0 cas</span></div><div class="trow"><span>Glycémie = 0</span><span class="tval" style="color:var(--orange2)">7 corrigés</span></div><div class="trow"><span>TA > 300 mmHg</span><span class="tval" style="color:var(--orange2)">3 corrigés</span></div><div class="trow"><span>Total</span><span class="tval" style="color:var(--blue2)">10</span></div></div>
+      </div>
+    </div>
+    <div id="tab-units" style="display:none">
+      <div class="alert ag"><span class="aico">✅</span><span>Toutes les unités converties vers le système SI international.</span></div>
+      <div class="tgrid">
+        <div class="tc2"><div class="tctitle">🩸 Glycémie</div><div class="trow"><span>mg/dL → mmol/L</span><span class="arr">÷18.02</span></div><div class="trow"><span>135 mg/dL</span><span class="tval">→ 7.49 mmol/L</span></div><div class="trow"><span>Lignes converties</span><span class="tval" style="color:var(--blue2)">4 218</span></div></div>
+        <div class="tc2"><div class="tctitle">⚖️ Poids</div><div class="trow"><span>lbs → kg</span><span class="arr">×0.4536</span></div><div class="trow"><span>154 lbs</span><span class="tval">→ 69.9 kg</span></div><div class="trow"><span>Lignes converties</span><span class="tval" style="color:var(--blue2)">892</span></div></div>
+        <div class="tc2"><div class="tctitle">🌡️ Température</div><div class="trow"><span>°F → °C</span><span class="arr">(F-32)×5/9</span></div><div class="trow"><span>98.6°F</span><span class="tval">→ 37.0°C</span></div><div class="trow"><span>Lignes converties</span><span class="tval" style="color:var(--blue2)">1 104</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     VUE : ANONYMISATION
+════════════════════════════════ -->
+<div id="v-anon" style="display:none" class="fadein">
+  <div class="ph">
+    <div><div class="pt">Anonymisation & Protection PHI</div>
+    <div class="ps">De-identification, k-anonymité, pseudonymisation SHA-256 · RGPD / HIPAA</div></div>
+    <span class="tag tg" style="padding:6px 14px;font-size:12px">✅ RGPD Conforme</span>
+  </div>
+  <div id="anon-empty" class="alert aw"><span class="aico">⚠️</span><span>Lancez le pipeline d'abord.</span></div>
+  <div id="anon-content" style="display:none">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="background:var(--surf);border:1px solid var(--green);border-radius:var(--r2);padding:12px 18px;display:flex;align-items:center;gap:10px"><span style="font-size:22px">🔒</span><div><div style="font-size:12px;font-weight:700;color:var(--green2)">PHI Supprimés</div><div style="font-size:20px;font-weight:900;font-family:var(--mono)">0</div><div style="font-size:10px;color:var(--txt2)">champs résiduels</div></div></div>
+      <div style="background:var(--surf);border:1px solid var(--blue);border-radius:var(--r2);padding:12px 18px;display:flex;align-items:center;gap:10px"><span style="font-size:22px">👥</span><div><div style="font-size:12px;font-weight:700;color:var(--blue2)">k-Anonymité</div><div style="font-size:20px;font-weight:900;font-family:var(--mono)">k = 5</div><div style="font-size:10px;color:var(--txt2)">quasi-identifiants</div></div></div>
+      <div style="background:var(--surf);border:1px solid var(--orange);border-radius:var(--r2);padding:12px 18px;display:flex;align-items:center;gap:10px"><span style="font-size:22px">🆔</span><div><div style="font-size:12px;font-weight:700;color:var(--orange2)">Pseudonymisation</div><div style="font-size:20px;font-weight:900;font-family:var(--mono)">SHA-256</div><div style="font-size:10px;color:var(--txt2)">hash + sel rotatif</div></div></div>
+      <div style="background:var(--surf);border:1px solid var(--purple);border-radius:var(--r2);padding:12px 18px;display:flex;align-items:center;gap:10px"><span style="font-size:22px">📅</span><div><div style="font-size:12px;font-weight:700;color:var(--purple2)">Date Shifting</div><div style="font-size:20px;font-weight:900;font-family:var(--mono)">±30j</div><div style="font-size:10px;color:var(--txt2)">décalage cohérent</div></div></div>
+    </div>
+    <div class="tabs">
+      <button class="tab on" onclick="stab(this,'ta-phi')">Champs PHI traités</button>
+      <button class="tab" onclick="stab(this,'ta-kanon')">k-Anonymité</button>
+      <button class="tab" onclick="stab(this,'ta-audit')">Audit Log</button>
+      <button class="tab" onclick="stab(this,'ta-code')">Code Python</button>
+    </div>
+    <div id="ta-phi">
+      <div class="agrid">
+        <div class="ac"><div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--red2)">🔴 AVANT anonymisation</div><div class="afield"><span>Nom</span><span class="aold">Dupont, Jean</span></div><div class="afield"><span>Date naissance</span><span class="aold">14/03/1968</span></div><div class="afield"><span>N° SS</span><span class="aold">168034412345678</span></div><div class="afield"><span>Adresse</span><span class="aold">12 rue des Lilas, Paris</span></div><div class="afield"><span>Médecin traitant</span><span class="aold">Dr. Martin, Louis</span></div><div class="afield"><span>N° dossier</span><span class="aold">HOP-PARIS-00934</span></div></div>
+        <div class="ac"><div style="font-size:12px;font-weight:700;margin-bottom:10px;color:var(--green2)">✅ APRÈS anonymisation</div><div class="afield"><span>Nom</span><span class="anew">SUPPRIMÉ</span></div><div class="afield"><span>Âge (tranche)</span><span class="anew">55–60 ans</span></div><div class="afield"><span>ID pseudonyme</span><span class="anew">PT-a3f7b2e1…</span></div><div class="afield"><span>Région</span><span class="anew">Île-de-France</span></div><div class="afield"><span>Code établissement</span><span class="anew">ETB-IDF-004</span></div><div class="afield"><span>N° dossier</span><span class="anew">HASH:8c4a91d0</span></div></div>
+      </div>
+    </div>
+    <div id="ta-kanon" style="display:none">
+      <div class="alert ag"><span class="aico">✅</span><span>k-anonymité vérifiée : chaque groupe quasi-identifiant contient ≥ <b>k=5</b> individus. Aucune ré-identification possible.</span></div>
+      <div class="charts"><div class="cc chart-w"><div class="ct">Distribution des groupes k-anonymes</div><div class="cs">Taille par groupe (seuil min : k=5)</div><div class="cw" style="height:210px"><canvas id="ch-kanon"></canvas></div></div></div>
+    </div>
+    <div id="ta-audit" style="display:none">
+      <div class="tcard">
+        <div class="ttbar"><span class="ttn">📋 Journal d'audit anonymisation</span></div>
+        <div style="overflow-x:auto"><table><thead><tr><th>Timestamp</th><th>Opération</th><th>Champ</th><th>Méthode</th><th>Statut</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">2026-06-11 09:14:02</td><td>Suppression PHI</td><td><span class="code">patient_name</span></td><td>Hard delete</td><td><span class="tag tg">OK</span></td></tr>
+          <tr><td class="mono">2026-06-11 09:14:03</td><td>Pseudonymisation</td><td><span class="code">patient_id</span></td><td>SHA-256 + sel</td><td><span class="tag tg">OK</span></td></tr>
+          <tr><td class="mono">2026-06-11 09:14:04</td><td>Date shifting</td><td><span class="code">diagnosis_date</span></td><td>Aléatoire ±30j</td><td><span class="tag tg">OK</span></td></tr>
+          <tr><td class="mono">2026-06-11 09:14:05</td><td>Généralisation</td><td><span class="code">age</span></td><td>Tranches 5 ans</td><td><span class="tag tg">OK</span></td></tr>
+          <tr><td class="mono">2026-06-11 09:14:06</td><td>k-Anonymité</td><td>Quasi-identifiants</td><td>k=5 grouping</td><td><span class="tag tg">OK</span></td></tr>
+          <tr><td class="mono">2026-06-11 09:14:08</td><td>Scan PHI final</td><td>Tous les champs</td><td>NER BioBERT</td><td><span class="tag tg">0 résidus</span></td></tr>
+        </tbody></table></div>
+      </div>
+    </div>
+    <div id="ta-code" style="display:none">
+      <div class="codeblock"><span class="cc2"># src/security/anonymizer.py</span><br>
+<span class="ck">import</span> <span class="cv2">hashlib</span>, <span class="cv2">secrets</span><br>
+<span class="ck">import</span> <span class="cv2">pandas</span> <span class="ck">as</span> <span class="cv2">pd</span><br><br>
+<span class="ck">class</span> <span class="cs">MedicalAnonymizer</span>:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">def</span> <span class="cs">__init__</span>(<span class="cv2">self</span>, k=<span class="cn">5</span>):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cv2">self</span>.k = k<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cv2">self</span>.salt = secrets.<span class="cs">token_hex</span>(<span class="cn">32</span>)<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">def</span> <span class="cs">pseudonymize_id</span>(<span class="cv2">self</span>, value):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cc2">"""SHA-256 + sel aléatoire"""</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">return</span> <span class="cs">'PT-'</span> + hashlib.<span class="cs">sha256</span>(<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="cv2">self</span>.salt + <span class="cs">str</span>(value)).<span class="cs">encode</span>()).<span class="cs">hexdigest</span>()[:<span class="cn">8</span>]<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">def</span> <span class="cs">verify_k_anonymity</span>(<span class="cv2">self</span>, df, quasi_ids):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;groups = df.<span class="cs">groupby</span>(quasi_ids).<span class="cs">size</span>()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ck">return</span> <span class="cs">bool</span>((groups >= <span class="cv2">self</span>.k).<span class="cs">all</span>())</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     VUE : EXPORT DVC
+════════════════════════════════ -->
+<div id="v-export" style="display:none" class="fadein">
+  <div class="ph">
+    <div><div class="pt">Export & Versioning DVC</div>
+    <div class="ps">Dataset nettoyé versionné · Git-DVC · Versions A (daté) + B (anonymisé)</div></div>
+  </div>
+  <div id="exp-empty" class="alert aw"><span class="aico">⚠️</span><span>Lancez le pipeline d'abord.</span></div>
+  <div id="exp-content" style="display:none">
+    <!-- DVC terminal (fidèle au schéma) -->
+    <div class="dvc-terminal">
+      <div><span class="t-prompt">$</span> <span class="t-cmd">dvc add data/raw/medical_data_raw.csv</span></div>
+      <div><span class="t-out">✔ Adding data/raw/medical_data_raw.csv to .dvc/cache</span></div>
+      <div><span class="t-grey">  md5: a3f7b2e1c4d8...</span></div>
+      <div><span class="t-prompt">$</span> <span class="t-cmd">dvc push</span></div>
+      <div><span class="t-out">✔ 1 file pushed to s3://medclean-bucket/dvc-remote</span></div>
+      <div><span class="t-prompt">$</span> <span class="t-cmd">dvc commit data/cleaned/medical_data_clean.csv</span></div>
+      <div><span class="t-out">✔ Committing changes in data/cleaned/medical_data_clean.csv to cache</span></div>
+      <div><span class="t-prompt">$</span> <span class="t-cmd">git tag v1.0-anonymized</span></div>
+      <div><span class="t-out">✔ Tag v1.0-anonymized créé · Dataset ready for modeling</span></div>
+    </div>
+
+    <div class="egrid">
+      <div class="ec" onclick="dlCSV()"><span class="ec-ico">📄</span><span class="ec-n">CSV Nettoyé — Version A</span><span class="ec-d">Dataset anonymisé normalisé prêt ML — avec dates réelles</span><span class="ec-badge" style="background:rgba(34,197,94,.15);color:var(--green2)">DVC-Tracked v1.0</span></div>
+      <div class="ec" onclick="dlAnon()"><span class="ec-ico">🔒</span><span class="ec-n">CSV Anonymisé — Version B</span><span class="ec-d">Dates masquées, IDs pseudonymisés, RGPD complet</span><span class="ec-badge" style="background:rgba(167,139,250,.15);color:var(--purple2)">v1.0-anonymized</span></div>
+      <div class="ec" onclick="dlJSON()"><span class="ec-ico">📋</span><span class="ec-n">Rapport DQV (JSON)</span><span class="ec-d">Rapport complet des vérifications qualité + recommandations</span><span class="ec-badge" style="background:rgba(79,142,247,.15);color:var(--blue2)">JSON / FHIR R4</span></div>
+      <div class="ec" onclick="dlLog()"><span class="ec-ico">📝</span><span class="ec-n">Log Pipeline</span><span class="ec-d">Journal d'exécution complet avec timestamps et métriques</span><span class="ec-badge" style="background:rgba(245,158,11,.15);color:var(--orange2)">JSONL / TXT</span></div>
+      <div class="ec" onclick="dlProfile()"><span class="ec-ico">📊</span><span class="ec-n">Profil Statistique</span><span class="ec-d">Min, max, mean, std, quantiles par colonne</span><span class="ec-badge" style="background:rgba(20,184,166,.15);color:var(--teal2)">Pandas-Profiling</span></div>
+      <div class="ec"><span class="ec-ico">🗜️</span><span class="ec-n">Archive ZIP Complète</span><span class="ec-d">CSV-A + CSV-B + DQV + logs + profil en une archive</span><span class="ec-badge" style="background:rgba(239,68,68,.15);color:var(--red2)">ZIP · Versions A+B</span></div>
+    </div>
+
+    <div style="background:var(--surf);border:1px solid var(--b);border-radius:var(--r2);padding:16px 18px;margin-bottom:14px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px">📦 Commit DVC Actuel</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+        <div><div style="font-size:10px;color:var(--txt2)">HASH</div><div style="font-family:var(--mono);font-size:12px;color:var(--blue2)" id="ex-hash">—</div></div>
+        <div><div style="font-size:10px;color:var(--txt2)">TAG</div><div style="font-family:var(--mono);font-size:12px;color:var(--green2)">v1.0-anonymized</div></div>
+        <div><div style="font-size:10px;color:var(--txt2)">DATE</div><div style="font-family:var(--mono);font-size:12px" id="ex-date">—</div></div>
+        <div><div style="font-size:10px;color:var(--txt2)">TAILLE</div><div style="font-family:var(--mono);font-size:12px">2.4 MB</div></div>
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;margin-bottom:10px">Comparaison de versions</div>
+    <div class="cgrid">
+      <div class="ccard"><div class="cch"><span style="font-size:16px">📊</span><div><div style="font-size:12px;font-weight:700">v0.3-diabetes-who</div><div style="font-size:11px;color:var(--txt2)">Précédent · 2 jours</div></div><span class="tag to" style="margin-left:auto">Précédent</span></div><div class="cmet"><span class="lb">Lignes</span><span class="v1">12 840</span></div><div class="cmet"><span class="lb">Manquants</span><span class="v1">12.1%</span></div><div class="cmet"><span class="lb">Doublons</span><span class="v1">341</span></div><div class="cmet"><span class="lb">Score</span><span class="v1">88%</span></div></div>
+      <div class="ccard"><div class="cch"><span style="font-size:16px">📊</span><div><div style="font-size:12px;font-weight:700">v1.0-anonymized</div><div style="font-size:11px;color:var(--txt2)">Actuel</div></div><span class="tag tg" style="margin-left:auto">Actuel</span></div><div class="cmet"><span class="lb">Lignes</span><span class="v2">12 617 <span style="color:var(--red2);font-size:10px">▼1.7%</span></span></div><div class="cmet"><span class="lb">Manquants</span><span class="v2">8.3% <span style="color:var(--green2);font-size:10px">▼3.8pp</span></span></div><div class="cmet"><span class="lb">Doublons</span><span class="v2">223 <span style="color:var(--green2);font-size:10px">▼34%</span></span></div><div class="cmet"><span class="lb">Score</span><span class="v2">94% <span style="color:var(--green2);font-size:10px">▲6pp</span></span></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     VUE : HISTORIQUE
+════════════════════════════════ -->
+<div id="v-history" style="display:none" class="fadein">
+  <div class="ph">
+    <div><div class="pt">Historique des versions DVC</div>
+    <div class="ps">Consultez, restaurez et comparez les versions précédentes</div></div>
+    <button class="btn btn-ghost" onclick="gv('pipeline')">+ Nouveau job</button>
+  </div>
+  <div class="alert ai"><span class="aico">🔄</span><span>L'utilisateur peut relancer avec une nouvelle URL ou restaurer une version : <code style="background:var(--surf2);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:11px">dvc checkout &lt;tag&gt;</code></span></div>
+  <div class="vlist">
+    <div class="vi curr"><div class="vh">a3f7b2e1</div><div class="vi-info"><div class="vi-tag">v1.0-anonymized <span class="tag tg" style="font-size:10px;margin-left:6px">Actuel</span></div><div class="vi-meta">Aujourd'hui · 12 617 lignes · Score 94% · PHI supprimés</div></div><div class="vi-act"><button class="btn btn-ghost" onclick="dlCSV()">⬇ CSV</button><button class="btn btn-ghost">📋 Rapport</button></div></div>
+    <div class="vi"><div class="vh">8c4a91d0</div><div class="vi-info"><div class="vi-tag">v0.3-diabetes-who</div><div class="vi-meta">Il y a 2 jours · WHO GHO Diabetes 2010–2020 · 12 840 lignes · Score 88%</div></div><div class="vi-act"><button class="btn btn-ghost">⬇</button><button class="btn btn-ghost">🔁 Restaurer</button><button class="btn btn-red">🗑</button></div></div>
+    <div class="vi"><div class="vh">f1e2c37b</div><div class="vi-info"><div class="vi-tag">v0.2-mimic-icu</div><div class="vi-meta">Il y a 5 jours · MIMIC-III ICU Admissions · 58 976 lignes · Score 91%</div></div><div class="vi-act"><button class="btn btn-ghost">⬇</button><button class="btn btn-ghost">🔁 Restaurer</button><button class="btn btn-red">🗑</button></div></div>
+    <div class="vi"><div class="vh">2b7d5a3c</div><div class="vi-info"><div class="vi-tag">v0.1-pubmed-ct</div><div class="vi-meta">Il y a 12 jours · ClinicalTrials.gov Cancer · 3 412 lignes · Score 79%</div></div><div class="vi-act"><button class="btn btn-ghost">⬇</button><button class="btn btn-ghost">🔁 Restaurer</button><button class="btn btn-red">🗑</button></div></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════
+     VUE : PARAMÈTRES
+════════════════════════════════ -->
+<div id="v-settings" style="display:none" class="fadein">
+  <div class="ph">
+    <div><div class="pt">Paramètres du Pipeline</div></div>
+    <button class="btn btn-blue" onclick="saveS(event)">✔ Enregistrer</button>
+  </div>
+  <div class="sgrid">
+    <div class="scrd"><div class="st">🕷️ Scraping</div>
+      <div class="sfield"><span class="slabel">Délai entre requêtes (ms)</span><div class="srange"><input type="range" min="100" max="3000" value="500" oninput="this.nextElementSibling.textContent=this.value+'ms'"><span class="srv">500ms</span></div></div>
+      <div class="sfield"><span class="slabel">Max retries</span><input class="sinput" type="number" value="3" min="1" max="10"></div>
+      <div class="srow"><span>Activer Selenium (JS dynamique)</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="srow"><span>Respecter robots.txt</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+    </div>
+    <div class="scrd"><div class="st">🔒 Anonymisation</div>
+      <div class="srow"><span>Suppression PHI obligatoire</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="srow"><span>k-anonymité active</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="sfield" style="margin-top:8px"><span class="slabel">Valeur de k</span><div class="srange"><input type="range" min="2" max="20" value="5" oninput="this.nextElementSibling.textContent='k='+this.value"><span class="srv">k=5</span></div></div>
+      <div class="srow"><span>Date shifting ±30j</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="srow"><span>Differential Privacy (ε=1.0)</span><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+    </div>
+    <div class="scrd"><div class="st">📊 Seuils DQV</div>
+      <div class="sfield"><span class="slabel">Valeurs manquantes max (%)</span><div class="srange"><input type="range" min="5" max="50" value="15" oninput="this.nextElementSibling.textContent=this.value+'%'"><span class="srv">15%</span></div></div>
+      <div class="sfield"><span class="slabel">Seuil alerte doublons (%)</span><div class="srange"><input type="range" min="0" max="20" value="5" oninput="this.nextElementSibling.textContent=this.value+'%'"><span class="srv">5%</span></div></div>
+      <div class="srow"><span>Bloquer export si Gate = FAIL</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="srow"><span>Alerte email si anomalie critique</span><button class="toggle" onclick="this.classList.toggle('on')"></button></div>
+    </div>
+    <div class="scrd"><div class="st">☁️ DVC & Stockage</div>
+      <div class="sfield"><span class="slabel">DVC Remote URL</span><input class="sinput" value="s3://medclean-bucket/dvc-remote"></div>
+      <div class="sfield"><span class="slabel">Type de stockage</span><select class="ssel"><option>Amazon S3</option><option>Google Cloud Storage</option><option>Azure Blob Storage</option><option>MinIO (local)</option></select></div>
+      <div class="srow"><span>Auto-push après commit</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+      <div class="srow"><span>Chiffrement AES-256 au repos</span><button class="toggle on" onclick="this.classList.toggle('on')"></button></div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<script>
+// ═══════════════════════════════
+// STATE
+// ═══════════════════════════════
+let data=null,logs=[],charts={},sasc=true;
+const COLS=['patient_id','age','gender','icd_code','blood_glucose_mmol','blood_pressure_systolic','hemoglobin','diagnosis_date','treatment','outcome'];
+const COLF=['ID Patient','Âge','Sexe','Code ICD','Glycémie (mmol/L)','TA Syst.','Hémoglobine','Date Diag.','Traitement','Résultat'];
+const VIEWS=['pipeline','dashboard','dqv','transform','anon','export','history','settings'];
+
+// ═══════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════
+function gv(n){
+  VIEWS.forEach(v=>{
+    const el=document.getElementById('v-'+v);
+    if(el)el.style.display=v===n?'block':'none';
+  });
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('on'));
+  const nt=document.getElementById('nt-'+n);if(nt)nt.classList.add('on');
+  const sb=document.getElementById('sb-'+n);if(sb)sb.classList.add('on');
+}
+function su(u){document.getElementById('url-in').value=u;}
+function lex(t){
+  const m={mimic:'https://physionet.org/content/mimiciii-demo/1.4/',
+    who:'https://apps.who.int/gho/data/node.resources',
+    pubmed:'https://www.ncbi.nlm.nih.gov/research/pubtator3-api/',
+    ct:'https://clinicaltrials.gov/api/query/full_studies?expr=diabetes'};
+  su(m[t]||'');gv('pipeline');
+}
+
+// ═══════════════════════════════
+// TABS
+// ═══════════════════════════════
+function stab(btn,tid){
+  btn.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  const view=btn.closest('[id^="v-"]');
+  if(view)view.querySelectorAll('[id^="tab-"],[id^="ta-"]').forEach(t=>t.style.display='none');
+  const t=document.getElementById(tid);
+  if(t){t.style.display='block';drawTabCharts(tid);}
+}
+function drawTabCharts(tid){
+  if(tid==='tab-scale'&&data){
+    setTimeout(()=>{
+      const lbs=Array.from({length:18},(_,i)=>(3+i*.5).toFixed(1));
+      mk('ch-scale','bar',{labels:lbs,datasets:[{label:'Original (mmol/L)',data:lbs.map(()=>Math.round(Math.random()*15+5)),backgroundColor:'rgba(239,68,68,.3)',borderColor:'#ef4444',borderWidth:1,borderRadius:2},{label:'Standardisé (Z)',data:lbs.map(()=>Math.round(Math.random()*10)),backgroundColor:'rgba(79,142,247,.3)',borderColor:'#4f8ef7',borderWidth:1,borderRadius:2}]},{plugins:{legend:{labels:{color:'#94a3b8',font:{size:10},boxWidth:8}}},scales:{x:{ticks:{color:'#64748b',font:{size:8},maxTicksLimit:8},grid:{color:'#2d3347'}},y:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'#2d3347'}}}});
+      const cl=['Âge/Glycémie','Âge/TA','Âge/Hgb','Glycémie/TA','Glycémie/Hgb','TA/Hgb'];
+      const cv=[.42,.31,-.18,.28,-.22,-.15];
+      mk('ch-corr','bar',{labels:cl,datasets:[{data:cv,backgroundColor:cv.map(v=>v>0?'rgba(79,142,247,.5)':'rgba(239,68,68,.5)'),borderColor:cv.map(v=>v>0?'#4f8ef7':'#ef4444'),borderWidth:1.5,borderRadius:4}]},{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'#2d3347'}},y:{min:-1,max:1,ticks:{color:'#64748b',font:{size:9}},grid:{color:'#2d3347'}}}});
+    },50);
+  }
+  if(tid==='ta-kanon'&&data){
+    setTimeout(()=>{
+      const grps=['H 18-30','F 18-30','H 31-45','F 31-45','H 46-60','F 46-60','H 61-75','F 61-75','H 76+','F 76+'];
+      const vals=[12,14,18,21,25,22,19,17,8,7];
+      mk('ch-kanon','bar',{labels:grps,datasets:[{label:'Taille groupe',data:vals,backgroundColor:vals.map(v=>v>=5?'rgba(34,197,94,.4)':'rgba(239,68,68,.4)'),borderColor:vals.map(v=>v>=5?'#22c55e':'#ef4444'),borderWidth:1.5,borderRadius:4}]},{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'#2d3347'}},y:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'#2d3347'}}}});
+    },50);
+  }
+}
+
+// ═══════════════════════════════
+// PIPELINE
+// ═══════════════════════════════
+async function runPipeline(){
+  const url=document.getElementById('url-in').value.trim();
+  if(!url){alert('Veuillez saisir une URL valide.');return;}
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;
+  document.getElementById('run-ico').outerHTML='<div class="spinner" id="run-ico"></div>';
+  document.getElementById('run-lbl').textContent='Traitement…';
+  document.getElementById('nav-st').textContent='⏳ En cours…';
+  const card=document.getElementById('prog-card');
+  card.classList.add('show');
+  logs=[];document.getElementById('plog').innerHTML='';
+  pct(0);for(let i=0;i<7;i++)ss(i,'');
+
+  const steps=[
+    {l:['✔ URL validée : '+url.slice(0,50)+'…','✔ Format détecté : HTTP/HTTPS','✔ Paramètres chargés'],d:400},
+    {l:['→ Init BeautifulSoup parser…','→ Scraping page index…','→ Extraction données tabulaires…','✔ 12 840 lignes brutes collectées','✔ Sauvegarde raw/medical_data_raw.csv'],d:1800},
+    {l:['→ dvc init (Git-indépendant)','→ dvc add raw/medical_data_raw.csv','✔ Hash MD5 : a3f7b2e1…','→ dvc push → S3 remote…','✔ Push DVC OK · 2.4 MB uploadés'],d:1200},
+    {l:['→ Suppression PHI (noms, dates, N° SS)…','✔ k-anonymité (k=5) appliquée','→ Standardisation codes ICD-10…','→ Conversion mg/dL → mmol/L : 4 218 lignes','✔ Valeurs incohérentes corrigées : 10','✔ Dataset nettoyé : 12 617 lignes'],d:2000},
+    {l:['→ Valeurs manquantes… ✔ 8.3%','→ Doublons… ⚠ 223 détectés','→ Domaine (âge 0-120)… ✔','→ Cohérence inter-features… ✔','→ Distribution… ⚠ skew=1.41','→ PHI scan final… ✔ 0 résidus','✔ Gate DQV : APPROUVÉ · Score 94%'],d:2200},
+    {l:['→ Label Encoding : gender, outcome','→ One-Hot Encoding : icd_code (+8 cols)','→ StandardScaler : glycémie, TA, hémoglobine','✔ Transformation ML terminée'],d:1200},
+    {l:['→ dvc commit medical_data_clean.csv','→ git tag v1.0-anonymized','✔ Version taguée : v1.0-anonymized','✔ CSV-A + CSV-B générés','✅ Pipeline terminé avec succès !'],d:800}
+  ];
+
+  for(let i=0;i<steps.length;i++){
+    ss(i,'act');pct(Math.round((i/steps.length)*90));
+    for(const l of steps[i].l){await dl(steps[i].d/steps[i].l.length);addL(l);}
+    ss(i,'done');
+  }
+  pct(100);
+  document.getElementById('prog-title').textContent='✅ Pipeline terminé avec succès';
+  document.getElementById('prog-pill').textContent='Terminé';
+  document.getElementById('prog-pill').className='pill pill-ok';
+  document.getElementById('nav-st').innerHTML='<span style="color:var(--green2)">✔ Prêt</span>';
+  setTimeout(()=>{
+    const ic=document.getElementById('run-ico');
+    if(ic)ic.outerHTML='<span id="run-ico">▶</span>';
+    document.getElementById('run-lbl').textContent='Lancer à nouveau';
+    btn.disabled=false;
+  },200);
+
+  data=genData();
+  document.getElementById('rc').textContent=data.length;
+  populateDash();populateDQV();populateExport();
+  enableSec('tr-empty','tr-content');
+  enableSec('anon-empty','anon-content');
+  enableSec('exp-empty','exp-content');
+  setTimeout(()=>gv('dashboard'),800);
+}
+
+const dl=ms=>new Promise(r=>setTimeout(r,ms));
+function pct(p){document.getElementById('pbar').style.width=p+'%';}
+function ss(i,c){const e=document.getElementById('ps'+i);e.classList.remove('done','act');if(c)e.classList.add(c);}
+function addL(line){
+  logs.push(line);
+  const e=document.getElementById('plog');
+  const c=line.startsWith('✔')||line.startsWith('✅')?'l1':line.startsWith('⚠')?'l2':line.startsWith('✖')?'l3':'l0';
+  e.innerHTML+=`<span class="${c}">${line}</span>\n`;e.scrollTop=e.scrollHeight;
+}
+function enableSec(eid,cid){
+  document.getElementById(eid).style.display='none';
+  document.getElementById(cid).style.display='block';
+}
+
+// ═══════════════════════════════
+// DATA
+// ═══════════════════════════════
+function genData(){
+  const dx=['E11.9','I10','J45.20','K21.0','N18.3','C34.10','E78.5','I25.10'];
+  const dn=['Diabète T2','Hypertension','Asthme','RGO','MRC stade 3','Cancer poumon','Dyslipidémie','Cardiopathie'];
+  const tx=['Metformine 850mg','Ramipril 5mg','Salbutamol 100µg','Oméprazole 20mg','Dialyse','Chimiothérapie','Atorvastatine 40mg','Aspirine 100mg'];
+  const out=['Stable','Amélioré','Hospitalisé','Rémission','Chronique'];
+  return Array.from({length:50},(_,i)=>{
+    const idx=Math.floor(Math.random()*8);
+    return{patient_id:'PT-'+String(10000+i).padStart(5,'0'),age:20+Math.floor(Math.random()*70),
+      gender:Math.random()>.5?'M':'F',icd_code:dx[idx],icd_name:dn[idx],
+      blood_glucose_mmol:(4+Math.random()*9).toFixed(1),
+      blood_pressure_systolic:100+Math.floor(Math.random()*70),
+      hemoglobin:(9+Math.random()*7).toFixed(1),
+      diagnosis_date:`202${Math.floor(Math.random()*4)}-${String(1+Math.floor(Math.random()*12)).padStart(2,'0')}-${String(1+Math.floor(Math.random()*28)).padStart(2,'0')}`,
+      treatment:tx[idx],outcome:out[Math.floor(Math.random()*5)]};
+  });
+}
+
+// ═══════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════
+function populateDash(){
+  enableSec('d-empty','d-content');
+  document.getElementById('dash-sub').textContent=`Dataset nettoyé · ${data.length} lignes · v1.0-anonymized`;
+  set('s1','12 617');set('s1d','<span class="sup">✔</span> 100% valides');
+  set('s2','8.3%');set('s2d','<span class="sup">▼</span> Sous seuil 15%');
+  set('s3','223');set('s3d','<span class="sdown">▼</span> Doublons supprimés');
+  set('s4','94%');set('s4d','<span class="sup">↑ 6pp</span> vs précédent');
+  document.getElementById('dl-btn').disabled=false;
+  trend('tr1',[60,72,80,85,90,95,100],'#4f8ef7');
+  trend('tr2',[22,18,15,12,10,9,8],'#22c55e');
+  trend('tr3',[800,600,450,340,280,240,223],'#f59e0b');
+  trend('tr4',[72,78,82,86,90,92,94],'#22c55e');
+  renderTable(data);
+  setTimeout(drawDash,100);
+}
+function set(id,html){const e=document.getElementById(id);if(e)e.innerHTML=html;}
+function trend(id,vals,col){
+  const e=document.getElementById(id);if(!e)return;
+  const mx=Math.max(...vals);
+  e.innerHTML=vals.map(v=>`<div class="stb" style="height:${Math.round(v/mx*22)}px;background:${col}"></div>`).join('');
+}
+function drawDash(){
+  const ic={};data.forEach(r=>ic[r.icd_name]=(ic[r.icd_name]||0)+1);
+  mk('ch-icd','doughnut',{labels:Object.keys(ic),datasets:[{data:Object.values(ic),backgroundColor:['#4f8ef7','#22c55e','#f59e0b','#ef4444','#a78bfa','#14b8a6','#e3b341','#79c0ff'],borderColor:'#1a1f2e',borderWidth:2}]},{plugins:{legend:{labels:{color:'#94a3b8',font:{size:10},boxWidth:9}}}});
+
+  const ab={'18-30':0,'31-45':0,'46-60':0,'61-75':0,'76+':0};
+  data.forEach(r=>{const a=r.age;if(a<=30)ab['18-30']++;else if(a<=45)ab['31-45']++;else if(a<=60)ab['46-60']++;else if(a<=75)ab['61-75']++;else ab['76+']++;});
+  mk('ch-age','bar',{labels:Object.keys(ab),datasets:[{label:'Patients',data:Object.values(ab),backgroundColor:'rgba(79,142,247,.5)',borderColor:'#4f8ef7',borderWidth:1.5,borderRadius:5}]},{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#2d3347'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#2d3347'}}}});
+
+  const gbd={};data.forEach(r=>{if(!gbd[r.icd_name])gbd[r.icd_name]=[];gbd[r.icd_name].push(parseFloat(r.blood_glucose_mmol));});
+  const dls=Object.keys(gbd);
+  mk('ch-gluc','bar',{labels:dls,datasets:[{label:'Avant (mg/dL÷18)',data:dls.map(k=>+(gbd[k].reduce((a,b)=>a+b,0)/gbd[k].length).toFixed(2)),backgroundColor:'rgba(239,68,68,.3)',borderColor:'#ef4444',borderWidth:1.5,borderRadius:3},{label:'Après (mmol/L)',data:dls.map(k=>+(gbd[k].reduce((a,b)=>a+b,0)/gbd[k].length).toFixed(2)),backgroundColor:'rgba(34,197,94,.4)',borderColor:'#22c55e',borderWidth:1.5,borderRadius:3}]},{plugins:{legend:{labels:{color:'#94a3b8',font:{size:10},boxWidth:8}}},scales:{x:{ticks:{color:'#64748b',font:{size:9},maxRotation:30},grid:{color:'#2d3347'}},y:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#2d3347'}}}});
+
+  const oc={};data.forEach(r=>oc[r.outcome]=(oc[r.outcome]||0)+1);
+  mk('ch-out','polarArea',{labels:Object.keys(oc),datasets:[{data:Object.values(oc),backgroundColor:['rgba(34,197,94,.5)','rgba(79,142,247,.5)','rgba(239,68,68,.5)','rgba(167,139,250,.5)','rgba(245,158,11,.5)'],borderColor:['#22c55e','#4f8ef7','#ef4444','#a78bfa','#f59e0b'],borderWidth:1.5}]},{plugins:{legend:{labels:{color:'#94a3b8',font:{size:10},boxWidth:8}}},scales:{r:{ticks:{display:false},grid:{color:'#2d3347'}}}});
+
+  mk('ch-qual','line',{labels:['Brut','Scraping','DVC','Nettoyage','DQV','Transform','Export'],datasets:[{label:'Score qualité %',data:[45,52,55,78,90,93,94],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',fill:true,tension:.4,pointBackgroundColor:'#22c55e',pointRadius:4}]},{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b',font:{size:10}},grid:{color:'#2d3347'}},y:{min:0,max:100,ticks:{color:'#64748b',font:{size:10}},grid:{color:'#2d3347'}}}});
+}
+
+// ═══════════════════════════════
+// TABLE
+// ═══════════════════════════════
+function renderTable(d){
+  const hd=document.getElementById('thead'),bd=document.getElementById('tbody');
+  if(!hd||!bd)return;
+  hd.innerHTML='<tr>'+COLF.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  bd.innerHTML=d.slice(0,25).map(r=>'<tr>'+COLS.map(c=>{
+    const v=r[c];
+    if(c==='icd_code')return`<td><span class="code">${v}</span></td>`;
+    if(c==='outcome'){const cl=v==='Amélioré'||v==='Rémission'?'tg':v==='Hospitalisé'?'tr':v==='Chronique'?'to':'tb';return`<td><span class="tag ${cl}">${v}</span></td>`;}
+    if(c==='patient_id')return`<td class="mono" style="font-size:10px">${v}</td>`;
+    if(c==='gender')return`<td><span class="tag ${v==='M'?'tb':'tp'}">${v}</span></td>`;
+    return`<td>${v}</td>`;
+  }).join('')+'</tr>').join('');
+  const tc=document.getElementById('tcnt');if(tc)tc.textContent=d.length+' lignes';
+}
+function filterT(){if(!data)return;const q=document.getElementById('tsearch').value.toLowerCase();renderTable(data.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(q))));}
+function sortT(){if(!data)return;sasc=!sasc;renderTable([...data].sort((a,b)=>sasc?a.age-b.age:b.age-a.age));}
+
+// ═══════════════════════════════
+// DQV
+// ═══════════════════════════════
+function populateDQV(){
+  enableSec('dqv-empty','dqv-content');
+  const checks=[
+    {ico:'✅',n:'Valeurs manquantes (<15%)',b:'PASS',bc:'bp',m:[{l:'Max missing/feature',v:'8.3%',p:83,c:'#22c55e'},{l:'Colonnes concernées',v:'3/10',p:70,c:'#4f8ef7'}]},
+    {ico:'⚠️',n:'Enregistrements dupliqués',b:'AVERT',bc:'bw',m:[{l:'Doublons détectés',v:'223',p:18,c:'#f59e0b'},{l:'Supprimés auto',v:'100%',p:100,c:'#22c55e'}]},
+    {ico:'⚠️',n:'Validité Domaine/Type',b:'AVERT',bc:'bw',m:[{l:'Âge hors [0-120]',v:'0',p:100,c:'#22c55e'},{l:'Glycémie ≤ 0',v:'7 corrigés',p:93,c:'#f59e0b'}]},
+    {ico:'✅',n:'Cohérence inter-features',b:'PASS',bc:'bp',m:[{l:'Tx avant diagnostic',v:'0 cas',p:100,c:'#22c55e'},{l:'TA incohérente',v:'0 cas',p:100,c:'#22c55e'}]},
+    {ico:'⚠️',n:'Consistance Distribution',b:'AVERT',bc:'bw',m:[{l:'Skewness glycémie',v:'1.41',p:59,c:'#f59e0b'},{l:'Kurtosis',v:'2.8',p:72,c:'#fbbf24'}]},
+    {ico:'✅',n:'Anonymisation PHI',b:'PASS',bc:'bp',m:[{l:'PHI résiduels',v:'0',p:100,c:'#22c55e'},{l:'k-anonymité k=5',v:'Validé',p:100,c:'#22c55e'}]},
+  ];
+  document.getElementById('checks-cont').innerHTML=checks.map(c=>`<div class="chk"><div class="chk-h"><span class="chk-ico">${c.ico}</span><span class="chk-n">${c.n}</span><span class="chk-b ${c.bc}">${c.b}</span></div>${c.m.map(m=>`<div class="cm"><span>${m.l}</span><span class="cv" style="color:${m.c}">${m.v}</span></div><div class="mbar"><div class="mf" style="width:${m.p}%;background:${m.c}"></div></div>`).join('')}</div>`).join('');
+  setTimeout(()=>{
+    mk('ch-radar','radar',{labels:['Complétude','Sans doublons','Validité','Cohérence','Distribution','PHI'],datasets:[{label:'Score DQV',data:[92,85,93,100,72,100],backgroundColor:'rgba(79,142,247,.2)',borderColor:'#4f8ef7',borderWidth:2,pointBackgroundColor:'#4f8ef7',pointRadius:4}]},{plugins:{legend:{display:false}},scales:{r:{suggestedMin:0,suggestedMax:100,ticks:{color:'#64748b',font:{size:9},stepSize:25},grid:{color:'#2d3347'},pointLabels:{color:'#94a3b8',font:{size:10}}}}});
+    const ms=[0,0,0,0,5,3,8,2,0,0];
+    mk('ch-miss','bar',{labels:COLF,datasets:[{label:'Complétude %',data:ms.map(m=>100-m),backgroundColor:ms.map(m=>m<=15?'rgba(34,197,94,.4)':'rgba(245,158,11,.4)'),borderColor:ms.map(m=>m<=15?'#22c55e':'#f59e0b'),borderWidth:1.5,borderRadius:3}]},{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{min:80,max:100,ticks:{color:'#64748b',font:{size:9}},grid:{color:'#2d3347'}},y:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'#2d3347'}}}});
+  },100);
+}
+function rdqv(){if(!data){alert('Lancez le pipeline d\'abord.');return;}document.getElementById('dqv-sum').textContent='🔄 Recalcul en cours…';setTimeout(()=>document.getElementById('dqv-sum').textContent='4/6 checks OK — Dataset approuvé. 2 avertissements.',1000);}
+
+// ═══════════════════════════════
+// EXPORT
+// ═══════════════════════════════
+function populateExport(){
+  const h=Math.random().toString(16).slice(2,10);
+  document.getElementById('ex-hash').textContent=h;
+  document.getElementById('ex-date').textContent=new Date().toLocaleDateString('fr-FR');
+}
+function xdl(content,type,name){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();}
+function dlCSV(){if(!data)return;xdl(COLF.join(',')+'\n'+data.map(r=>COLS.map(c=>r[c]).join(',')).join('\n'),'text/csv','medical_data_clean_v1.0.csv');}
+function dlAnon(){if(!data)return;xdl(COLF.join(',')+'\n'+data.map((r,i)=>`PT-ANON-${String(i+1).padStart(4,'0')},${r.age<30?'18-30':r.age<45?'31-45':r.age<60?'46-60':'60+'},${r.gender},${r.icd_code},${r.blood_glucose_mmol},${r.blood_pressure_systolic},${r.hemoglobin},MASKED,${r.treatment},${r.outcome}`).join('\n'),'text/csv','medical_data_v1.0-anonymized.csv');}
+function dlJSON(){xdl(JSON.stringify({version:'v1.0-anonymized',timestamp:new Date().toISOString(),checks:{missing:'PASS',duplicates:'WARN',domain:'WARN',cross_feature:'PASS',distribution:'WARN',phi:'PASS'},rows:data?data.length:0,quality_score:0.94,gate:'APPROVED'},null,2),'application/json','dqv_report_v1.0.json');}
+function dlLog(){xdl(logs.join('\n'),'text/plain','pipeline_log.txt');}
+function dlProfile(){xdl(JSON.stringify({dataset:'medical_data_clean_v1.0',rows:12617,columns:10,stats:{age:{mean:52.3,std:15.6,min:18,max:89},blood_glucose_mmol:{mean:7.42,std:2.18,min:3.2,max:14.8}}},null,2),'application/json','data_profile.json');}
+
+// ═══════════════════════════════
+// TRANSFORM
+// ═══════════════════════════════
+function applyT(){alert('✅ Transformations appliquées !\n\n• Label Encoding : gender, outcome\n• One-Hot Encoding : icd_code (+8 cols)\n• StandardScaler : glycémie, TA, hémoglobine\n• MinMaxScaler : âge\n• Date features : +4 colonnes\n• Conversions unités : 3 colonnes');}
+
+// ═══════════════════════════════
+// SETTINGS
+// ═══════════════════════════════
+function saveS(e){const b=e.target;b.textContent='✔ Enregistré !';b.style.background='linear-gradient(135deg,#22c55e,#16a34a)';setTimeout(()=>{b.textContent='✔ Enregistrer';b.style.background='';},1800);}
+
+// ═══════════════════════════════
+// CHART HELPER
+// ═══════════════════════════════
+function mk(id,type,data,opts={}){
+  if(charts[id]){charts[id].destroy();delete charts[id];}
+  const el=document.getElementById(id);if(!el)return;
+  charts[id]=new Chart(el.getContext('2d'),{type,data,options:{responsive:true,maintainAspectRatio:false,...opts}});
+}
+</script>
+</body>
+</html>
